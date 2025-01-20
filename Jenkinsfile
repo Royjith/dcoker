@@ -20,7 +20,10 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker image...'
-                    sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
+                    def buildResult = sh(script: 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .', returnStatus: true)
+                    if (buildResult != 0) {
+                        error 'Docker build failed!'  // Explicitly fail if Docker build fails
+                    }
                 }
             }
         }
@@ -28,9 +31,11 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 script {
-                    // Trivy scan for vulnerabilities with severity levels HIGH and CRITICAL
                     echo 'Running Trivy vulnerability scan on the Docker image...'
-                    sh 'trivy --severity HIGH,CRITICAL --skip-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}'
+                    def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --skip-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}', returnStatus: true)
+                    if (scanResult != 0) {
+                        error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
+                    }
                 }
             }
         }
@@ -40,10 +45,13 @@ pipeline {
                 input message: 'Approve Deployment?', ok: 'Deploy'  // Manual approval for deployment
                 script {
                     echo 'Pushing Docker image to DockerHub...'
-                    docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}") {
-                        // Correct way to push the Docker image
-                        def dockerImage = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                        dockerImage.push()  // Push the image with the tag defined in the DOCKER_TAG variable
+                    try {
+                        docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}") {
+                            def dockerImage = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                            dockerImage.push()  // Push the image with the tag defined in DOCKER_TAG variable
+                        }
+                    } catch (Exception e) {
+                        error "Docker push failed: ${e.message}"  // Explicitly fail if push fails
                     }
                 }
             }
