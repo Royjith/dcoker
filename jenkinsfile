@@ -1,12 +1,11 @@
-
 pipeline {
     agent { label 'node-1' }  // Set the agent to use node-1
 
     environment {
         DOCKER_IMAGE = 'my-app'              // Docker image name
         DOCKER_TAG = 'latest'                // Docker tag
-        DOCKER_HUB_REPO = 'royjith/pikube'   // Add your Docker Hub repository 
-        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Credential id
+        DOCKER_HUB_REPO = 'royjith/pikube'   // Docker Hub repository
+        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Docker Hub credentials ID
     }
 
     stages {
@@ -34,12 +33,16 @@ pipeline {
             }
         }
 
-        stage('Push Image to DockerHub'){
-			steps {
-				script {
-					echo 'pushing docker image to DockerHub...'
-					docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}"){
-						dockerImage.push('latest')
+        stage('Push Image to DockerHub') {
+            steps {
+                input message: 'Approve Deployment?', ok: 'Deploy'  // Manual approval for deployment
+                script {
+                    echo 'Pushing Docker image to DockerHub...'
+                    docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}") {
+                        // Correct way to push the Docker image
+                        def dockerImage = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        dockerImage.push()  // Push the image with the tag defined in the DOCKER_TAG variable
+                    }
                 }
             }
         }
