@@ -5,14 +5,15 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'my-app'              // Docker image name
         DOCKER_TAG = 'latest'                // Docker tag
-        DOCKER_HUB_REPO = 'my-docker-repo'   // Add your Docker Hub repository (if applicable)
+        DOCKER_HUB_REPO = 'royjith/pikube'   // Add your Docker Hub repository 
+        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Credential id
     }
 
     stages {
         stage('Checkout') {
             steps {
                 echo 'Checking out code from Git...'
-                checkout scm
+                git branch: 'main', credentialsId: 'dockerhub', url: 'https://github.com/Royjith/docker.git'                
             }
         }
 
@@ -33,12 +34,12 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                input message: 'Approve Deployment?', ok: 'Deploy'  // Manual approval for deployment
-                script {
-                    echo 'Deploying Docker image to production...'
-                    sh 'docker run -d ${DOCKER_IMAGE}:${DOCKER_TAG}'
+        stage('Push Image to DockerHub'){
+			steps {
+				script {
+					echo 'pushing docker image to DockerHub...'
+					docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}"){
+						dockerImage.push('latest')
                 }
             }
         }
