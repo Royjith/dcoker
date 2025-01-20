@@ -1,1 +1,58 @@
 
+pipeline {
+    agent { label 'node-1' }  // Set the agent to use node-1
+
+    environment {
+        DOCKER_IMAGE = 'my-app'              // Docker image name
+        DOCKER_TAG = 'latest'                // Docker tag
+        DOCKER_HUB_REPO = 'my-docker-repo'   // Add your Docker Hub repository (if applicable)
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from Git...'
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo 'Building Docker image...'
+                    sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .'
+                }
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                // Trivy scan for vulnerabilities with severity levels HIGH and CRITICAL
+                echo 'Running Trivy vulnerability scan on the Docker image...'
+                sh 'trivy --severity HIGH,CRITICAL --skip-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                input message: 'Approve Deployment?', ok: 'Deploy'  // Manual approval for deployment
+                script {
+                    echo 'Deploying Docker image to production...'
+                    sh 'docker run -d ${DOCKER_IMAGE}:${DOCKER_TAG}'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()  // Clean workspace after pipeline execution
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}
