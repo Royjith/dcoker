@@ -12,7 +12,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out code from Git...'
-                git branch: 'main', credentialsId: 'dockerhub', url: 'https://github.com/Royjith/docker.git'                
+                git branch: 'main', credentialsId: 'dockerhub', url: 'https://github.com/Royjith/docker.git'
             }
         }
 
@@ -27,9 +27,11 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                // Trivy scan for vulnerabilities with severity levels HIGH and CRITICAL
-                echo 'Running Trivy vulnerability scan on the Docker image...'
-                sh 'trivy --severity HIGH,CRITICAL --skip-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}'
+                script {
+                    // Trivy scan for vulnerabilities with severity levels HIGH and CRITICAL
+                    echo 'Running Trivy vulnerability scan on the Docker image...'
+                    sh 'trivy --severity HIGH,CRITICAL --skip-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}'
+                }
             }
         }
 
