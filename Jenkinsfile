@@ -32,10 +32,10 @@ pipeline {
             steps {
                 script {
                     echo 'Running Trivy vulnerability scan on the Docker image...'
-                    // Updated command to use --skip-db-update instead of --skip-update
-                    def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --skip-db-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest', returnStatus: true)
+                    // Remove --skip-update and --skip-db-update to allow DB download on first run
+                    def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest', returnStatus: true)
                     if (scanResult != 0) {
-                       error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
+                        error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
                     }
                 }
             }
