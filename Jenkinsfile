@@ -32,7 +32,19 @@ pipeline {
             steps {
                 script {
                     echo 'Running Trivy vulnerability scan on the Docker image...'
-                    def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --skip-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}', returnStatus: true)
+
+                    // Check if Trivy database exists (you may need to adjust the path based on your environment)
+                    def trivyDbExists = fileExists('/root/.cache/trivy/db/trivy.db')  // Adjust the path if needed
+
+                    // Run Trivy scan with or without --skip-db-update depending on the DB state
+                    def trivyCommand = trivyDbExists ?
+                        'trivy --severity HIGH,CRITICAL --skip-db-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}' :
+                        'trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}'
+
+                    // Execute the Trivy command
+                    def scanResult = sh(script: trivyCommand, returnStatus: true)
+
+                    // Handle error if Trivy scan fails
                     if (scanResult != 0) {
                         error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
                     }
