@@ -38,7 +38,7 @@ pipeline {
 
                     // Run Trivy scan with or without --skip-db-update depending on the DB state
                     def trivyCommand = trivyDbExists ?
-                        'trivy --severity HIGH,CRITICAL --skip-db-update --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}' :
+                        'trivy --severity HIGH,CRITICAL  --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}' :
                         'trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_IMAGE}:${DOCKER_TAG}'
 
                     // Execute the Trivy command
