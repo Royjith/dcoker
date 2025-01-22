@@ -53,13 +53,17 @@ pipeline {
                     echo 'Pushing Docker image to DockerHub...'
 
                     try {
-                        // Use the docker.withRegistry block to authenticate
-                        docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}") {
-                            def dockerImage = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}") // Build the image object
-                            dockerImage.push() // Push the image with the tag defined in DOCKER_TAG
+                        // Manually login to Docker Hub using the credentials
+                        withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
                         }
+
+                        // Push the Docker image to Docker Hub
+                        sh "docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
+
                     } catch (Exception e) {
                         error "Docker push failed: ${e.message}"  // Explicitly fail if push fails
+                    }
                     }
                 }
             }
