@@ -2,9 +2,9 @@ pipeline {
     agent { label 'node-1' }  // Set the agent to use node-1
 
     environment {
-        DOCKER_IMAGE = 'my-app'              // Docker image name
-        DOCKER_TAG = 'jith'                  // Docker tag
-        DOCKER_HUB_REPO = 'royjith/pikube'   // Docker Hub repository
+        DOCKER_IMAGE = 'my-app'               // Docker image name
+        DOCKER_TAG = 'jith'                   // Docker tag
+        DOCKER_HUB_REPO = 'royjith/pikube'    // Docker Hub repository
         DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Docker Hub credentials ID
     }
 
@@ -28,21 +28,22 @@ pipeline {
             }
         }
 
-        // stage('Trivy Scan') {   // Uncomment this block if you need to use Trivy Scan
-        //    steps {
-        //        script {
-        //            echo 'Clearing Trivy vulnerability database cache...'
-        //            // Remove the Trivy DB cache directory if it exists
-        //            sh 'rm -rf ~/.cache/trivy/db'
+        // Uncomment if you want to run Trivy Scan:
+        // stage('Trivy Scan') {
+        //     steps {
+        //         script {
+        //             echo 'Clearing Trivy vulnerability database cache...'
+        //             // Remove the Trivy DB cache directory if it exists
+        //             sh 'rm -rf ~/.cache/trivy/db'
         //
-        //            echo 'Running Trivy vulnerability scan on the Docker image...'
-        //            // Run the scan without any skipped updates (no --skip-update or --skip-db-update)
-        //            def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest', returnStatus: true)
-        //            if (scanResult != 0) {
-        //                error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
-        //            }
-        //        }
-        //    }
+        //             echo 'Running Trivy vulnerability scan on the Docker image...'
+        //             // Run the scan without any skipped updates (no --skip-update or --skip-db-update)
+        //             def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest', returnStatus: true)
+        //             if (scanResult != 0) {
+        //                 error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
+        //             }
+        //         }
+        //     }
         // }
 
         stage('Push Image to DockerHub') {
@@ -50,10 +51,12 @@ pipeline {
                 input message: 'Approve Deployment?', ok: 'Deploy'  // Manual approval for deployment
                 script {
                     echo 'Pushing Docker image to DockerHub...'
+
                     try {
+                        // Use the docker.withRegistry block to authenticate
                         docker.withRegistry('https://registry.hub.docker.com', "${DOCKER_HUB_CREDENTIALS_ID}") {
-                            def dockerImage = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                            dockerImage.push()  // Push the image with the tag defined in DOCKER_TAG variable
+                            def dockerImage = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}") // Build the image object
+                            dockerImage.push() // Push the image with the tag defined in DOCKER_TAG
                         }
                     } catch (Exception e) {
                         error "Docker push failed: ${e.message}"  // Explicitly fail if push fails
