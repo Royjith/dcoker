@@ -28,23 +28,23 @@ pipeline {
             }
         }
 
-        // Uncomment if you want to run Trivy Scan:
-        // stage('Trivy Scan') {
-        //     steps {
-        //         script {
-        //             echo 'Clearing Trivy vulnerability database cache...'
-        //             // Remove the Trivy DB cache directory if it exists
-        //             sh 'rm -rf ~/.cache/trivy/db'
-        //
-        //             echo 'Running Trivy vulnerability scan on the Docker image...'
-        //             // Run the scan without any skipped updates (no --skip-update or --skip-db-update)
-        //             def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest', returnStatus: true)
-        //             if (scanResult != 0) {
-        //                 error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
-        //             }
-        //         }
-        //     }
-        // }
+        // Uncomment the Trivy Scan stage if needed:
+        /*
+        stage('Trivy Scan') {
+            steps {
+                script {
+                    echo 'Clearing Trivy vulnerability database cache...'
+                    sh 'rm -rf ~/.cache/trivy/db'
+
+                    echo 'Running Trivy vulnerability scan on the Docker image...'
+                    def scanResult = sh(script: 'trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest', returnStatus: true)
+                    if (scanResult != 0) {
+                        error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
+                    }
+                }
+            }
+        }
+        */
 
         stage('Push Image to DockerHub') {
             steps {
@@ -63,7 +63,6 @@ pipeline {
 
                     } catch (Exception e) {
                         error "Docker push failed: ${e.message}"  // Explicitly fail if push fails
-                    }
                     }
                 }
             }
