@@ -7,8 +7,8 @@ DOCKER_HUB_REPO="royjith/pikube"
 DOCKER_HUB_CREDENTIALS_ID="dockerhub"  # Replace with actual credentials or use a secure method to inject
 
 # Replace these with your actual credentials or environment variables
-DOCKER_USERNAME="<your-docker-username>"
-DOCKER_PASSWORD="<your-docker-password>"
+DOCKER_USERNAME="royjith"
+DOCKER_PASSWORD="Welcome@123"
 
 # Step 1: Checkout code from Git
 echo "Checking out code from Git..."
