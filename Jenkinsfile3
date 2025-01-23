@@ -23,7 +23,7 @@ pipeline {
                     def tag = "${DOCKER_TAG ?: 'latest'}" 
                     echo "Building Docker image with tag: ${tag}..."
                     // Build the Docker image with the determined tag
-                    def buildResult = sh(script: "docker build -t ${DOCKER_IMAGE}:${tag} .", returnStatus: true)
+                    def buildResult = sh(script: "docker build -t ${DOCKER_HUB_REPO}:${tag} .", returnStatus: true)
             
                     if (buildResult != 0) {
                         error 'Docker build failed!'  // Explicitly fail if Docker build fails
