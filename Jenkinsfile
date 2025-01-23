@@ -51,8 +51,11 @@ pipeline {
                 input message: 'Approve Deployment?', ok: 'Deploy'  // Manual approval for deployment
                 script {
                     echo 'Pushing Docker image to DockerHub...'
-
-                    try {
+                    if [ $? -ne 0 ]; then
+                       echo "Docker push failed!"
+                       exit 1
+                    fi
+                    /*try {
                         // Manually login to Docker Hub using the credentials
                         withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                             sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
@@ -62,7 +65,7 @@ pipeline {
                         sh "docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
 
                     } catch (Exception e) {
-                        error "Docker push failed: ${e.message}"  // Explicitly fail if push fails
+                        error "Docker push failed: ${e.message}"  // Explicitly fail if push fails/*
                     }
                 }
             }
