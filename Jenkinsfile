@@ -19,8 +19,12 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo 'Building Docker image...'
-                    def buildResult = sh(script: 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .', returnStatus: true)
+                    // Set default tag to 'latest' if DOCKER_TAG is not defined
+                    def tag = "${DOCKER_TAG ?: 'latest'}" 
+                    echo "Building Docker image with tag: ${tag}..."
+                    // Build the Docker image with the determined tag
+                    def buildResult = sh(script: "docker build -t ${DOCKER_IMAGE}:${tag} .", returnStatus: true)
+            
                     if (buildResult != 0) {
                         error 'Docker build failed!'  // Explicitly fail if Docker build fails
                     }
