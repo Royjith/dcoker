@@ -1,45 +1,65 @@
 #!/bin/bash
 
-# Define environment variables
-DOCKER_IMAGE="my-app"
-DOCKER_TAG="jith"
-DOCKER_USERNAME="royjith"
-DOCKER_HUB_REPO="royjith/pikube"
-DOCKER_HUB_CREDENTIALS_ID="dockerhub"  # Replace with actual credentials or use a secure method to inject
+# Set environment variables
+DOCKER_IMAGE="my-app"                   # Docker image name
+DOCKER_TAG="jith"                       # Docker tag
+DOCKER_HUB_REPO="royjith/pikube"        # Docker Hub repository
+DOCKER_HUB_CREDENTIALS_ID="dockerhub"   # Docker Hub credentials ID
 
+# Manually retrieve Docker Hub credentials (replace with actual way of fetching credentials in your setup)
+DOCKER_USERNAME="royjith"    # Replace with actual username or fetch from env
+DOCKER_PASSWORD="dockerhub"    # Replace with actual password or fetch from env
 
-
-# Step 1: Checkout code from Git
+# Checkout code from Git
 echo "Checking out code from Git..."
-git clone https://github.com/Royjith/docker.git || { echo "Git clone failed!"; exit 1; }
-cd docker || { echo "Failed to navigate into the repository!"; exit 1; }
+git clone -b main https://github.com/Royjith/docker.git
+cd docker
 
-# Step 2: Build Docker Image
+# Build Docker Image
 echo "Building Docker image..."
-docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} . || { echo "Docker build failed!"; exit 1; }
+docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
 
-# Uncomment the Trivy scan block if needed:
-# Step 3: Run Trivy Scan (Optional)
+# Check if the build was successful
+if [ $? -ne 0 ]; then
+    echo "Docker build failed!"
+    exit 1
+fi
+
+# Uncomment if you want to run the Trivy scan
+# Trivy Scan
 # echo "Clearing Trivy vulnerability database cache..."
 # rm -rf ~/.cache/trivy/db
-
 # echo "Running Trivy vulnerability scan on the Docker image..."
-# trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest || { echo "Trivy scan failed!"; exit 1; }
+# trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest
+# if [ $? -ne 0 ]; then
+#     echo "Trivy scan failed!"
+#     exit 1
+# fi
 
-# Step 4: Push Docker Image to Docker Hub
-# Manual approval equivalent - simulate this in the script
-read -p "Approve Deployment? Press Enter to continue or Ctrl+C to cancel."
-
+# Push Image to Docker Hub
 echo "Pushing Docker image to DockerHub..."
-# Log in to Docker Hub
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin || { echo "Docker login failed!"; exit 1; }
 
-# Push the image
-docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG} || { echo "Docker push failed!"; exit 1; }
+# Docker Login
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-# Clean up workspace (if needed)
+# Check if the login was successful
+if [ $? -ne 0 ]; then
+    echo "Docker login failed!"
+    exit 1
+fi
+
+# Push the Docker image
+docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}
+
+# Check if the push was successful
+if [ $? -ne 0 ]; then
+    echo "Docker push failed!"
+    exit 1
+fi
+
+# Clean workspace
 echo "Cleaning up workspace..."
-rm -rf docker  # Assuming you want to remove the repo directory after the process
+rm -rf ./*
 
-# Final success message
+# Success message
 echo "Pipeline executed successfully!"
