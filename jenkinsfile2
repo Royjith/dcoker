@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Define environment variables
+DOCKER_IMAGE="my-app"
+DOCKER_TAG="jith"
+DOCKER_HUB_REPO="royjith/pikube"
+DOCKER_HUB_CREDENTIALS_ID="dockerhub"  # Replace with actual credentials or use a secure method to inject
+
+# Replace these with your actual credentials or environment variables
+DOCKER_USERNAME="<your-docker-username>"
+DOCKER_PASSWORD="<your-docker-password>"
+
+# Step 1: Checkout code from Git
+echo "Checking out code from Git..."
+git clone https://github.com/Royjith/docker.git || { echo "Git clone failed!"; exit 1; }
+cd docker || { echo "Failed to navigate into the repository!"; exit 1; }
+
+# Step 2: Build Docker Image
+echo "Building Docker image..."
+docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} . || { echo "Docker build failed!"; exit 1; }
+
+# Uncomment the Trivy scan block if needed:
+# Step 3: Run Trivy Scan (Optional)
+# echo "Clearing Trivy vulnerability database cache..."
+# rm -rf ~/.cache/trivy/db
+
+# echo "Running Trivy vulnerability scan on the Docker image..."
+# trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest || { echo "Trivy scan failed!"; exit 1; }
+
+# Step 4: Push Docker Image to Docker Hub
+# Manual approval equivalent - simulate this in the script
+read -p "Approve Deployment? Press Enter to continue or Ctrl+C to cancel."
+
+echo "Pushing Docker image to DockerHub..."
+# Log in to Docker Hub
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin || { echo "Docker login failed!"; exit 1; }
+
+# Push the image
+docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG} || { echo "Docker push failed!"; exit 1; }
+
+# Clean up workspace (if needed)
+echo "Cleaning up workspace..."
+rm -rf docker  # Assuming you want to remove the repo directory after the process
+
+# Final success message
+echo "Pipeline executed successfully!"
