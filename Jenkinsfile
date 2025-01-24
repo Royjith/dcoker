@@ -63,7 +63,8 @@ pipeline {
                         }
 
                         // Push the Docker image to Docker Hub
-                        sh "docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
+                      //  sh "docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
+                        sh "docker push my-app:jith"
 
                     } catch (Exception e) {
                         error "Docker push failed: ${e.message}"  // Explicitly fail if push fails
