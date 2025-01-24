@@ -2,7 +2,7 @@ pipeline {
     agent { label 'node-1' }  // Set the agent to use node-1
 
     environment {
-        DOCKER_IMAGE = 'my-app'               // Docker image name
+        DOCKER_IMAGE = 'myapp-jith'               // Docker image name
         DOCKER_TAG = 'jith'                   // Docker tag
         DOCKER_HUB_REPO = 'royjith/pikube'    // Docker Hub repository
         DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Docker Hub credentials ID
@@ -23,7 +23,7 @@ pipeline {
                     def tag = "${DOCKER_TAG ?: 'latest'}" 
                     echo "Building Docker image with tag: ${tag}..."
                     // Build the Docker image with the determined tag
-                    def buildResult = sh(script: "docker build -t ${DOCKER_IMAGE}:${tag} .", returnStatus: true)
+                    def buildResult = sh(script: "docker build -t ${DOCKER_IMAGE} .", returnStatus: true)
             
                     if (buildResult != 0) {
                         error 'Docker build failed!'  // Explicitly fail if Docker build fails
