@@ -3,9 +3,12 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'my-app'               // Docker image name
-        DOCKER_TAG = 'latest'                   // Docker tag
+        DOCKER_TAG = 'latest'                 // Docker tag
         DOCKER_HUB_REPO = 'royjith/pikube'    // Docker Hub repository
         DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Docker Hub credentials ID
+        KUBE_CONFIG = '/path/to/kubeconfig'  // Path to the kubeconfig file or use Jenkins Kubernetes plugin credentials
+        DEPLOYMENT_NAME = 'my-app-deployment'
+        NAMESPACE = 'default'  // Kubernetes namespace to deploy to
     }
 
     stages {
@@ -20,7 +23,7 @@ pipeline {
             steps {
                 script {
                     // Set default tag to 'latest' if DOCKER_TAG is not defined
-                    def tag = "${DOCKER_TAG ?: 'latest'}" 
+                    def tag = "${DOCKER_TAG ?: 'latest'}"
                     echo "Building Docker image with tag: ${tag}..."
                     // Build the Docker image with the determined tag
                     def buildResult = sh(script: "docker build -t ${DOCKER_HUB_REPO}:${tag} .", returnStatus: true)
@@ -31,24 +34,6 @@ pipeline {
                 }
             }
         }
-
-        // Uncomment the Trivy Scan stage if needed:
-        /*
-        stage('Trivy Scan') {
-            steps {
-                script {
-                    echo 'Clearing Trivy vulnerability database cache...'
-                    sh 'rm -rf ~/.cache/trivy/db'
-
-                    echo 'Running Trivy vulnerability scan on the Docker image...'
-                    def scanResult = sh(script: "trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest", returnStatus: true)
-                    if (scanResult != 0) {
-                        error 'Trivy scan failed!'  // Explicitly fail if Trivy scan fails
-                    }
-                }
-            }
-        }
-        */
 
         stage('Push Image to DockerHub') {
             steps {
@@ -69,6 +54,38 @@ pipeline {
 
                     } catch (Exception e) {
                         error "Docker push failed: ${e.message}"  // Explicitly fail if push fails
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when {
+                branch 'main'  // Only deploy on the 'main' branch
+            }
+            steps {
+                input message: 'Approve Kubernetes Deployment?', ok: 'Deploy'  // Another approval for deploying to Kubernetes
+                script {
+                    echo 'Deploying Docker image to Kubernetes...'
+                    try {
+                        // Set the kubeconfig file if needed
+                        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                            // Path to your deployment.yaml file in the repo
+                            def deploymentFile = 'deployment.yaml'
+
+                            // Update the Docker image in the deployment.yaml file
+                            sh """
+                                sed -i 's|image: .*|image: ${DOCKER_HUB_REPO}:${DOCKER_TAG}|g' ${deploymentFile}
+                            """
+
+                            // Apply the updated deployment.yaml using kubectl
+                            sh '''
+                                export KUBECONFIG=$KUBECONFIG_FILE
+                                kubectl apply -f ${deploymentFile} --namespace=${NAMESPACE}
+                            '''
+                        }
+                    } catch (Exception e) {
+                        error "Kubernetes deployment failed: ${e.message}"  // Explicitly fail if Kubernetes deployment fails
                     }
                 }
             }
