@@ -8,7 +8,7 @@ RUN dnf install -y python3.12
 
 
 RUN python3.12 -m ensurepip
-//same for the every underlying os
+##same for the every underlying os
 ## Set the environment variable for Python 3.12
 ENV PATH=$PATH:/usr/local/bin/python3.12
 
@@ -16,15 +16,15 @@ ENV PATH=$PATH:/usr/local/bin/python3.12
 # CMD ["python3.12", "-V"]
 WORKDIR /app
 
-COPY requirements.txt . //copy the dependencies form the requiremnts.txt
+COPY requirements.txt . ##copy the dependencies form the requiremnts.txt
 
-COPY ui.py . //this is actual logic
+COPY ui.py . #//this is actual logic
 
-RUN pip3 install --no-cache-dir -r requirements.txt //installing the dependencies in to image
+RUN pip3 install --no-cache-dir -r requirements.txt #//installing the dependencies in to image
 
 RUN python3.12 -m pip install --upgrade pip setuptools 
 
-EXPOSE 8501 //opening the port 
+EXPOSE 8501 #//opening the port 
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
