@@ -69,7 +69,7 @@ pipeline {
                     echo 'Deploying Docker image to Kubernetes...'
                     try {
                         // Set the kubeconfig file if needed
-                        withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                        withCredentials([file(credentialsId: 'pikube', variable: 'KUBECONFIG_FILE')]) {
                             // Path to your deployment.yaml file in the repo
                             def deploymentFile = 'deployment.yaml'
 
