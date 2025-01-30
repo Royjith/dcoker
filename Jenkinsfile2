@@ -96,10 +96,10 @@ pipeline {
 
                             // Apply the updated deployment.yaml using kubectl
                             echo 'Applying the updated deployment.yaml to the Kubernetes cluster...'
-                            sh '''
+                            sh """
                                 export KUBECONFIG=$KUBECONFIG_FILE
                                 kubectl apply -f ${deploymentFile} --namespace=default
-                            '''
+                            """
                         }
                     } catch (Exception e) {
                         error "Kubernetes deployment failed: ${e.message}"
