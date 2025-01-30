@@ -1,65 +1,123 @@
-#!/bin/bash
+pipeline {
+    agent { label 'node-1' }  // Adjust the agent to your environment
 
-# Set environment variables
-DOCKER_IMAGE="my-app"                   # Docker image name
-DOCKER_TAG="jith"                       # Docker tag
-DOCKER_HUB_REPO="royjith/pikube"        # Docker Hub repository
-DOCKER_HUB_CREDENTIALS_ID="dockerhub"   # Docker Hub credentials ID
+    environment {
+        DOCKER_IMAGE = 'my-app'               // Docker image name
+        DOCKER_TAG = 'latest'                   // Docker tag
+        DOCKER_HUB_REPO = 'royjith/pikube'    // Docker Hub repository
+        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Docker Hub credentials ID
+        KUBE_CONFIG = '/tmp/kubeconfig'  // Temporary path for Kubeconfig
+    }
 
-# Manually retrieve Docker Hub credentials (replace with actual way of fetching credentials in your setup)
-DOCKER_USERNAME="royjith"    # Replace with actual username or fetch from env
-DOCKER_PASSWORD="dockerhub"    # Replace with actual password or fetch from env
+    stages {
+        // Verify kubectl connection
+        stage('Verify kubectl Connection') {
+            steps {
+                script {
+                    echo 'Verifying kubectl connection...'
+                    try {
+                        // Use kubectl to create a temporary pod (nginx) to check if kubectl is working
+                        sh '''
+                            export KUBECONFIG=$KUBE_CONFIG
+                            kubectl run nginx --image=nginx --restart=Never --dry-run=client
+                        '''
+                        echo 'kubectl is working!'
+                    } catch (Exception e) {
+                        error "kubectl verification failed: ${e.message}"
+                    }
+                }
+            }
+        }
 
-# Checkout code from Git
-echo "Checking out code from Git..."
-git clone -b main https://github.com/Royjith/docker.git
-cd docker
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from Git...'
+                git branch: 'main', credentialsId: 'dockerhub', url: 'https://github.com/Royjith/docker.git'
+            }
+        }
 
-# Build Docker Image
-echo "Building Docker image..."
-docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def tag = "${DOCKER_TAG ?: 'latest'}"
+                    echo "Building Docker image with tag: ${tag}..."
+                    def buildResult = sh(script: "docker build -t ${DOCKER_HUB_REPO}:${tag} .", returnStatus: true)
 
-# Check if the build was successful
-if [ $? -ne 0 ]; then
-    echo "Docker build failed!"
-    exit 1
-fi
+                    if (buildResult != 0) {
+                        error 'Docker build failed!'
+                    }
+                }
+            }
+        }
 
-# Uncomment if you want to run the Trivy scan
-# Trivy Scan
-# echo "Clearing Trivy vulnerability database cache..."
-# rm -rf ~/.cache/trivy/db
-# echo "Running Trivy vulnerability scan on the Docker image..."
-# trivy --severity HIGH,CRITICAL --no-progress image --format table -o trivy-scan-report.txt ${DOCKER_HUB_REPO}:latest
-# if [ $? -ne 0 ]; then
-#     echo "Trivy scan failed!"
-#     exit 1
-# fi
+        stage('Push Image to DockerHub') {
+            steps {
+                input message: 'Approve Deployment?', ok: 'Deploy'
+                script {
+                    echo 'Pushing Docker image to DockerHub...'
 
-# Push Image to Docker Hub
-echo "Pushing Docker image to DockerHub..."
+                    try {
+                        withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh '''
+                                echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                            '''
+                        }
 
-# Docker Login
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                        sh "docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
+                    } catch (Exception e) {
+                        error "Docker push failed: ${e.message}"
+                    }
+                }
+            }
+        }
 
-# Check if the login was successful
-if [ $? -ne 0 ]; then
-    echo "Docker login failed!"
-    exit 1
-fi
+        stage('Deploy to Kubernetes') {
+            when {
+                branch 'main'  // Only deploy on the 'main' branch
+            }
+            steps {
+                input message: 'Approve Kubernetes Deployment?', ok: 'Deploy'
+                script {
+                    echo 'Deploying Docker image to Kubernetes...'
 
-# Push the Docker image
-docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}
+                    try {
+                        withCredentials([file(credentialsId: 'pikube', variable: 'KUBECONFIG_FILE')]) {
+                            def deploymentFile = 'deployment.yaml'
 
-# Check if the push was successful
-if [ $? -ne 0 ]; then
-    echo "Docker push failed!"
-    exit 1
-fi
+                            // Verify if the deployment.yaml exists in the workspace
+                            echo "Listing files to ensure deployment.yaml is present:"
+                            sh 'ls -al'
 
-# Clean workspace
-echo "Cleaning up workspace..."
-rm -rf ./*
+                            // Update the Docker image in the deployment.yaml with the newly pushed image tag
+                            echo "Updating Docker image in the deployment.yaml to ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
+                            sh """
+                                sed -i 's|image: .*|image: ${DOCKER_HUB_REPO}:${DOCKER_TAG}|g' ${deploymentFile}
+                            """
 
-# Success message
-echo "Pipeline executed successfully!"
+                            // Apply the updated deployment.yaml using kubectl
+                            echo 'Applying the updated deployment.yaml to the Kubernetes cluster...'
+                            sh '''
+                                export KUBECONFIG=$KUBECONFIG_FILE
+                                kubectl apply -f ${deploymentFile} --namespace=default
+                            '''
+                        }
+                    } catch (Exception e) {
+                        error "Kubernetes deployment failed: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()  // Clean workspace after pipeline execution
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}
