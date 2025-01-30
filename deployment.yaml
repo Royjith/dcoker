@@ -31,5 +31,5 @@ spec:
     - port: 80
       targetPort: 8501 
   selector:
-    app: streamlit-deployment
+    app: pipeline-deployment
 
