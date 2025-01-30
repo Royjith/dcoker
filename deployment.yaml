@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: pipeline-deployment
-        image: royjith/pikube:latest-v2
+        image: ${DOCKER_HUB_REPO}:${DOCKER_TAG}
         ports:
         - containerPort: 8501
 
