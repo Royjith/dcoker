@@ -18,7 +18,8 @@ WORKDIR /app
 
 COPY requirements.txt . 
 
-COPY ui.py . #this is actual logic
+COPY ui.py . 
+#this is actual logic
 
 RUN pip3 install --no-cache-dir -r requirements.txt 
 
