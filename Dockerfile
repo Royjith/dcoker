@@ -16,11 +16,11 @@ ENV PATH=$PATH:/usr/local/bin/python3.12
 # CMD ["python3.12", "-V"]
 WORKDIR /app
 
-COPY requirements.txt . ##copy the dependencies form the requiremnts.txt
+COPY requirements.txt . 
 
 COPY ui.py . #this is actual logic
 
-RUN pip3 install --no-cache-dir -r requirements.txt #installing the dependencies in to image
+RUN pip3 install --no-cache-dir -r requirements.txt 
 
 RUN python3.12 -m pip install --upgrade pip setuptools 
 
