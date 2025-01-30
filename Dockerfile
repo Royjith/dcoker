@@ -8,7 +8,7 @@ RUN dnf install -y python3.12
 
 
 RUN python3.12 -m ensurepip
-
+//same for the every underlying os
 ## Set the environment variable for Python 3.12
 ENV PATH=$PATH:/usr/local/bin/python3.12
 
