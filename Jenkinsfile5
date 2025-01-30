@@ -1,0 +1,125 @@
+pipeline {
+    agent { label 'node-1' }
+
+    environment {
+        DOCKER_IMAGE = 'my-app'
+        DOCKER_TAG = 'latest-v2'
+        DOCKER_HUB_REPO = 'royjith/pikube'
+        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'
+        KUBE_CONFIG = '/tmp/kubeconfig'  // Path to the kubeconfig file
+        DEPLOYMENT_NAME = 'pipeline-deployment'
+        NAMESPACE = 'default'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from Git...'
+                git branch: 'main', credentialsId: 'dockerhub', url: 'https://github.com/Royjith/docker.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "Building Docker image with tag: ${DOCKER_TAG}..."
+                    def buildResult = sh(script: "docker build -t ${DOCKER_HUB_REPO}:${DOCKER_TAG} .", returnStatus: true)
+
+                    if (buildResult != 0) {
+                        error 'Docker build failed!'
+                    }
+                }
+            }
+        }
+
+        stage('Push Image to DockerHub') {
+            steps {
+                input message: 'Approve Deployment?', ok: 'Deploy'
+                script {
+                    echo 'Pushing Docker image to DockerHub...'
+
+                    try {
+                        withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                            sh ''' 
+                                echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                            '''
+                        }
+
+                        // Push the Docker image to Docker Hub
+                        sh "docker push ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
+
+                    } catch (Exception e) {
+                        error "Docker push failed: ${e.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Verify Kubernetes Connectivity') {
+            steps {
+                script {
+                    echo 'Verifying kubectl connection...'
+
+                    try {
+                        withCredentials([file(credentialsId: 'pikube', variable: 'KUBECONFIG_FILE')]) {
+                            sh '''
+                                export KUBECONFIG=$KUBECONFIG_FILE
+                                kubectl version --short
+                            '''
+                        }
+                    } catch (Exception e) {
+                        error "Kubernetes connection verification failed: ${e.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input message: 'Approve Kubernetes Deployment?', ok: 'Deploy'
+                script {
+                    echo 'Deploying Docker image to Kubernetes...'
+
+                    try {
+                        withCredentials([file(credentialsId: 'pikube', variable: 'KUBECONFIG_FILE')]) {
+                            def deploymentFile = 'deployment.yaml'
+
+                            // Verify deployment.yaml exists
+                            sh 'ls -al ${deploymentFile}'
+
+                            // Update the Docker image in the deployment.yaml
+                            echo "Updating Docker image in the deployment.yaml to ${DOCKER_HUB_REPO}:${DOCKER_TAG}"
+                            sh """
+                                sed -i 's|image: .*|image: ${DOCKER_HUB_REPO}:${DOCKER_TAG}|g' ${deploymentFile}
+                            """
+
+                            // Apply the updated deployment.yaml
+                            echo 'Applying the updated deployment.yaml to the Kubernetes cluster...'
+                            sh """
+                                export KUBECONFIG=$KUBECONFIG_FILE
+                                kubectl apply -f ${deploymentFile} --namespace=${NAMESPACE}
+                            """
+                        }
+                    } catch (Exception e) {
+                        error "Kubernetes deployment failed: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}
