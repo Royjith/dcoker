@@ -81,7 +81,7 @@ pipeline {
                             // Apply the updated deployment.yaml using kubectl
                             sh '''
                                 export KUBECONFIG=$KUBECONFIG_FILE
-                                kubectl apply -f ${deploymentFile} --namespace=${NAMESPACE}
+                                kubectl apply -f deployment.yaml --namespace=default
                             '''
                         }
                     } catch (Exception e) {
