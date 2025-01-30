@@ -16,18 +16,17 @@ ENV PATH=$PATH:/usr/local/bin/python3.12
 # CMD ["python3.12", "-V"]
 WORKDIR /app
 
-COPY requirements.txt .
+COPY requirements.txt . //copy the dependencies form the requiremnts.txt
 
-COPY ui.py .
+COPY ui.py . //this is actual logic
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt //installing the dependencies in to image
 
-RUN python3.12 -m pip install --upgrade pip setuptools
+RUN python3.12 -m pip install --upgrade pip setuptools 
 
-EXPOSE 8501
+EXPOSE 8501 //opening the port 
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
-ENTRYPOINT ["streamlit", "run", "ui.py", "--server.port=8501", "--server.address=0.0.0.0"]
-
+ENTRYPOINT ["streamlit", "run", "ui.py", "--server.port=8501", "--server.address=0.0.0.0"] 
 
