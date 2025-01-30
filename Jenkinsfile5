@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'my-app'
-        DOCKER_TAG = 'latest-v2'
+        DOCKER_TAG = 'latest-v3'
         DOCKER_HUB_REPO = 'royjith/pikube'
         DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'
         KUBE_CONFIG = '/tmp/kubeconfig'  // Path to the kubeconfig file
