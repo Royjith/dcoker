@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: pipeline-deployment
-        image: royjith/pikube:latest-v
+        image: royjith/pikube:latest-v1
         ports:
         - containerPort: 8501
 
