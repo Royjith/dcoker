@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'myapp-jith'               // Docker image name
-        DOCKER_TAG = 'jith'                   // Docker tag
+        DOCKER_TAG = 'jit'                   // Docker tag
         DOCKER_HUB_REPO = 'royjith/pikube'    // Docker Hub repository
         DOCKER_HUB_CREDENTIALS_ID = 'dockerhub'  // Docker Hub credentials ID
     }
